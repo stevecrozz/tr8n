@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8n.net
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -20,15 +20,44 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
+#
+#-- Tr8n::LanguageRule Schema Information
+#
+# Table name: tr8n_language_rules
+#
+#  id               INTEGER         not null, primary key
+#  language_id      integer         not null
+#  translator_id    integer         
+#  type             varchar(255)    
+#  definition       text            
+#  created_at       datetime        
+#  updated_at       datetime        
+#
+# Indexes
+#
+#  index_tr8n_language_rules_on_language_id_and_translator_id    (language_id, translator_id) 
+#  index_tr8n_language_rules_on_language_id                      (language_id) 
+#
+#++
 
 class Tr8n::LanguageRule < ActiveRecord::Base
-  set_table_name :tr8n_language_rules
+  self.table_name = :tr8n_language_rules
+
+  attr_accessible :language_id, :translator_id, :definition
+  attr_accessible :language, :translator
+
+  after_save      :clear_cache
+  after_destroy   :clear_cache
 
   belongs_to :language, :class_name => "Tr8n::Language"   
   belongs_to :translator, :class_name => "Tr8n::Translator"   
   
   serialize :definition
-  
+
+  def definition
+    @indifferent_def ||= HashWithIndifferentAccess.new(super)
+  end
+
   def self.by_id(rule_id)
     Tr8n::Cache.fetch("language_rule_#{rule_id}") do 
       find_by_id(rule_id)
@@ -36,7 +65,7 @@ class Tr8n::LanguageRule < ActiveRecord::Base
   end
   
   def self.for(language)
-    find(:all, :conditions => ["language_id = ?", language.id])
+    self.where("language_id = ?", language.id)
   end
   
   def self.options
@@ -51,10 +80,16 @@ class Tr8n::LanguageRule < ActiveRecord::Base
     token.dependency == dependency or suffixes.include?(token.suffix)
   end
 
+  def self.keyword
+    dependency
+  end
+
+  # TDOD: switch to using keyword
   def self.dependency
     raise Tr8n::Exception.new("This method must be implemented in the extending rule") 
   end
   
+  # TDOD: switch to using keyword
   def self.dependency_label
     dependency
   end
@@ -104,12 +139,39 @@ class Tr8n::LanguageRule < ActiveRecord::Base
     destroy
   end
 
-  def after_save
+  def clear_cache
     Tr8n::Cache.delete("language_rule_#{id}")
   end
 
-  def after_destroy
-    Tr8n::Cache.delete("language_rule_#{id}")
+  ###############################################################
+  ## Synchronization Methods
+  ###############################################################
+  def to_sync_hash(token, opts = {})
+    {
+      "token" => token,  
+      "type" => self.class.keyword,
+      "definition" => definition
+    }
+  end
+  
+  # {"locale"=>"ru", "label"=>"{count} сообщения", "rank"=>1, "rules"=>[
+  #        {"token"=>"count", "type"=>"number", "definition"=>
+  #             {"multipart"=>true, "part1"=>"ends_in", "value1"=>"2,3,4", "operator"=>"and", "part2"=>"does_not_end_in", "value2"=>"12,13,14"}
+  #        }
+  #     ]
+  # }
+
+  def self.create_from_sync_hash(lang, translator, rule_hash, opts = {})
+    return unless rule_hash["token"] and rule_hash["type"] and rule_hash["definition"]
+
+    rule_class = Tr8n::Config.language_rule_dependencies[rule_hash["type"]]
+    return unless rule_class # unsupported rule type, skip this completely
+    
+    rule_class.for(lang).each do |rule|
+      return rule if rule.definition == rule_hash["definition"]
+    end
+    
+    rule_class.create(:language => lang, :translator => translator, :definition => rule_hash["definition"])
   end
 
 end

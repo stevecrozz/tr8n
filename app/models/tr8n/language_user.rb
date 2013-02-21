@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8n.net
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -20,10 +20,35 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
+#
+#-- Tr8n::LanguageUser Schema Information
+#
+# Table name: tr8n_language_users
+#
+#  id               INTEGER     not null, primary key
+#  language_id      integer     not null
+#  user_id          integer     not null
+#  translator_id    integer     
+#  manager          boolean     
+#  created_at       datetime    
+#  updated_at       datetime    
+#
+# Indexes
+#
+#  index_tr8n_language_users_on_updated_at                       (updated_at) 
+#  index_tr8n_language_users_on_created_at                       (created_at) 
+#  index_tr8n_language_users_on_language_id_and_translator_id    (language_id, translator_id) 
+#  index_tr8n_language_users_on_language_id_and_user_id          (language_id, user_id) 
+#  index_tr8n_language_users_on_user_id                          (user_id) 
+#
+#++
 
 class Tr8n::LanguageUser < ActiveRecord::Base
-  set_table_name :tr8n_language_users
-  
+  self.table_name = :tr8n_language_users
+
+  attr_accessible :language_id, :user_id, :translator_id, :manager
+  attr_accessible :language, :translator, :user
+
   belongs_to :user, :class_name => Tr8n::Config.user_class_name, :foreign_key => :user_id
   belongs_to :language, :class_name => "Tr8n::Language"
   belongs_to :translator, :class_name => "Tr8n::Translator"
@@ -33,9 +58,13 @@ class Tr8n::LanguageUser < ActiveRecord::Base
   # once user becomes a translator, this record will be associated with both for ease of use
   # when users get promoted, they are automatically get associated with a language and marked as translators
   
+  def self.delete_all_languages_for_translator(translator)
+    Tr8n::LanguageUser.connection.execute("delete from #{Tr8n::LanguageUser.table_name} where translator_id = #{translator.id}")
+  end
+
   def self.find_or_create(user, language)
-    lu = find(:first, :conditions => ["user_id = ? and language_id = ?", user.id, language.id])
-    lu || create(:user => user, :language => language)
+    lu = where("user_id = ? and language_id = ?", user.id, language.id).first
+    lu || create(:user_id => user.id, :language_id => language.id)
   end
 
   def self.check_default_language_for(user)
@@ -45,13 +74,13 @@ class Tr8n::LanguageUser < ActiveRecord::Base
   def self.languages_for(user)
     return [] unless user.id
     check_default_language_for(user)
-    find(:all, :conditions => ["user_id = ?", user.id], :order => "updated_at desc")
+    where("user_id = ?", user.id).order("updated_at desc")
   end
 
   def self.create_or_touch(user, language)
-    return unless user.id
+    return if Tr8n::Config.guest_user?(user)
     lu = Tr8n::LanguageUser.find_or_create(user, language)
-    lu.update_attributes(:updated_at => Time.now)
+    lu.touch
     lu
   end
   

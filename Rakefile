@@ -1,70 +1,36 @@
-#--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be
-# included in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#++
-
-require(File.join(File.dirname(__FILE__), 'config', 'boot'))
-
-require 'rake'
-require 'rake/testtask'
-require 'rake/rdoctask'
-require 'tasks/rails'
-
+#!/usr/bin/env rake
 begin
- require 'jeweler'
- Jeweler::Tasks.new do |s|
-   s.name = "tr8n"
-   s.summary = %Q{Crowd-sourced translation for Rails.}
-   s.email = "michael@geni.com"
-   s.homepage = "http://github.com/berk/tr8n"
-   s.description = "Crowd-sourced translation and localization for Rails"
-   s.authors = ["Michael Berkovich"]
- end
- Jeweler::GemcutterTasks.new
+  require 'bundler/setup'
 rescue LoadError
- puts "Jeweler not available. Install it with: sudo gem install jeweler"
+  puts 'You must `gem install bundler` and `bundle install` to run rake tasks'
 end
-
-Rake::TestTask.new do |t|
- t.libs << 'lib'
- t.pattern = 'test/**/*_test.rb'
- t.verbose = false
-end
-
-Rake::RDocTask.new do |rdoc|
- rdoc.rdoc_dir = 'rdoc'
- rdoc.title    = 'tr8n'
- rdoc.options << '--line-numbers' << '--inline-source'
- rdoc.rdoc_files.include('README*')
- rdoc.rdoc_files.include('lib/**/*.rb')
-end
-
 begin
- require 'rcov/rcovtask'
- Rcov::RcovTask.new do |t|
-   t.libs << 'test'
-   t.test_files = FileList['test/**/*_test.rb']
-   t.verbose = true
- end
+  require 'rdoc/task'
 rescue LoadError
+  require 'rdoc/rdoc'
+  require 'rake/rdoctask'
+  RDoc::Task = Rake::RDocTask
 end
 
-task :default => :test
+RDoc::Task.new(:rdoc) do |rdoc|
+  require 'tr8n/version'
+  
+  rdoc.rdoc_dir = 'rdoc'
+  rdoc.title    = 'Tr8n #{Tr8n::VERSION}'
+  rdoc.options << '--line-numbers'
+  rdoc.rdoc_files.include('README.rdoc')
+  rdoc.rdoc_files.include('lib/**/*.rb')
+end
+
+APP_RAKEFILE = File.expand_path("../sample/tr8n_server/Rakefile", __FILE__)
+load 'rails/tasks/engine.rake'
+
+Bundler::GemHelper.install_tasks
+
+require 'rspec/core'
+require 'rspec/core/rake_task'
+RSpec::Core::RakeTask.new(:spec) do |spec|
+  spec.pattern = FileList['spec/**/*_spec.rb']
+end
+
+task :default => :spec

@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8n.net
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -20,10 +20,37 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
+#
+#-- Tr8n::LanguageMetric Schema Information
+#
+# Table name: tr8n_language_metrics
+#
+#  id                      INTEGER         not null, primary key
+#  type                    varchar(255)    
+#  language_id             integer         not null
+#  metric_date             date            
+#  user_count              integer         default = 0
+#  translator_count        integer         default = 0
+#  translation_count       integer         default = 0
+#  key_count               integer         default = 0
+#  locked_key_count        integer         default = 0
+#  translated_key_count    integer         default = 0
+#  created_at              datetime        
+#  updated_at              datetime        
+#
+# Indexes
+#
+#  index_tr8n_language_metrics_on_created_at     (created_at) 
+#  index_tr8n_language_metrics_on_language_id    (language_id) 
+#
+#++
 
 class Tr8n::LanguageMetric < ActiveRecord::Base
-  set_table_name :tr8n_language_metrics
-
+  self.table_name = :tr8n_language_metrics
+  
+  attr_accessible :language_id, :metric_date, :user_count, :translator_count, :translation_count, :key_count, :locked_key_count, :translated_key_count
+  attr_accessible :language, :completeness
+  
   belongs_to :language, :class_name => "Tr8n::Language"   
 
   def self.default_attributes
@@ -46,8 +73,8 @@ class Tr8n::LanguageMetric < ActiveRecord::Base
   end
   
   def self.calculate_language_metrics
-    last_daily_metric = Tr8n::DailyLanguageMetric.find(:first, :conditions => "metric_date is not null", :order => "metric_date desc")
-    metric_date = last_daily_metric.nil? ? Date.new(2010, 5, 1) : last_daily_metric.metric_date
+    last_daily_metric = Tr8n::DailyLanguageMetric.where("metric_date is not null").order("metric_date desc").first
+    metric_date = last_daily_metric.nil? ? Date.new(2011, 10, 1) : last_daily_metric.metric_date
 
     Tr8n::Language.enabled_languages.each do |lang|
       Tr8n::Logger.debug("Processing #{lang.english_name} language...")

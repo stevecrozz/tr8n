@@ -3,7 +3,7 @@
 <%= tr8n_will_filter(@case_values) %>
 
 
-<% form_tag("", :id => "values_form") do %>
+<%= form_tag("", :id => "values_form") do %>
   <%= will_filter_table_tag(@case_values, :columns => [
     [:language_id, lambda{|lcase|
       if lcase.language
@@ -11,14 +11,14 @@
       else
          "Deleted Language"    
       end  
-    }], :keyword, :map, :reported, 
+    }, :filterable => true], :keyword, :map, :reported, 
     [:translator_id, lambda{|lcase|
       if lcase.translator
         link_to(lcase.translator.name, :controller => "/tr8n/admin/translator", :action => :view, :translator_id => lcase.translator.id)
       else
         "System Generated" 
       end  
-    }], :created_at
+    }, :filterable => true], :created_at
    ]) %>
 <% end %>
 

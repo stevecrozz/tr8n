@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8nhub.com
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -52,14 +52,6 @@ class Tr8n::Admin::LanguageController < Tr8n::Admin::BaseController
     end
     redirect_to_source
   end
-    
-  def charts
-    
-  end
-
-  def metrics
-    @metrics = Tr8n::LanguageMetric.filter(:params => params, :filter => Tr8n::LanguageMetricFilter)
-  end
 
   def users
     @users = Tr8n::LanguageUser.filter(:params => params, :filter => Tr8n::LanguageUserFilter)
@@ -100,7 +92,7 @@ class Tr8n::Admin::LanguageController < Tr8n::Admin::BaseController
       language.reset!
     end
     
-    redirect_to_source
+    redirect_to(:controller => "/tr8n/help", :action => "lb_done", :origin => params[:origin])
   end
 
   def case_rules

@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8nhub.com
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -23,7 +23,9 @@
 
 class Tr8n::HelpController < Tr8n::BaseController
 
-  before_filter :validate_current_translator
+  skip_before_filter :validate_current_translator
+  skip_before_filter :validate_guest_user
+  skip_before_filter :validate_current_user
   
   def index
 
@@ -33,8 +35,24 @@ class Tr8n::HelpController < Tr8n::BaseController
     render :layout => false
   end
 
-  def lb_credits
+  def lb_stats
     render :layout => false
   end
 
+  def lb_done
+    render :layout => false
+  end
+  
+  def credits
+    
+  end
+
+  def license
+    
+  end
+
+  def splash_screen
+    render :layout => false
+  end
+  
 end

@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8nhub.com
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -23,22 +23,6 @@
 
 module Tr8n::BaseHelper
 
-  # for admin translations
-  def tra(label, desc = "", tokens = {}, options = {})
-    if Tr8n::Config.enable_admin_translations?
-      if Tr8n::Config.enable_admin_inline_mode?
-        tr(label, desc, tokens, options)
-      else
-        trl(label, desc, tokens, options)
-      end
-    else
-      Tr8n::Config.default_language.translate(label, desc, tokens, options)
-    end
-  end
-  
-  # for admin translations
-  def trla(label, desc = "", tokens = {}, options = {})
-    tra(label, desc, tokens, options.merge(:skip_decorations => true))
-  end
 
+  
 end

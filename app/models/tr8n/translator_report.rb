@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8n.net
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -20,10 +20,33 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
+#
+#-- Tr8n::TranslatorReport Schema Information
+#
+# Table name: tr8n_translator_reports
+#
+#  id               INTEGER         not null, primary key
+#  translator_id    integer         
+#  state            varchar(255)    
+#  object_id        integer         
+#  object_type      varchar(255)    
+#  reason           varchar(255)    
+#  comment          text            
+#  created_at       datetime        
+#  updated_at       datetime        
+#
+# Indexes
+#
+#  index_tr8n_translator_reports_on_translator_id    (translator_id) 
+#
+#++
 
 class Tr8n::TranslatorReport < ActiveRecord::Base
-  set_table_name :tr8n_translator_reports
+  self.table_name = :tr8n_translator_reports
   
+  attr_accessible :translator_id, :state, :object_id, :object_type, :reason, :comment
+  attr_accessible :translator, :object
+
   belongs_to :translator, :class_name => "Tr8n::Translator"   
   belongs_to :object, :polymorphic => true
 
@@ -32,7 +55,7 @@ class Tr8n::TranslatorReport < ActiveRecord::Base
   end
 
   def self.report_for(translator, object)
-    find(:first, :conditions => ["translator_id = ? and object_type = ? and object_id = ?", translator.id, object.class.name, object.id])
+    self.where("translator_id = ? and object_type = ? and object_id = ?", translator.id, object.class.name, object.id).first
   end
   
   def self.title_for(object)

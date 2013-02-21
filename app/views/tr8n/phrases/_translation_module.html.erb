@@ -1,9 +1,10 @@
-<div id="translation_module" class="section_box colored" style="display:none">
-	<div style="font-size:17px;padding-bottom:3px;font-weight:bold;">
-	  <%=trla("Translation for {language} Language", "", :language => tr8n_current_language.native_name)%>
+<div id="translation_module" class="section grey" style="display:none">
+	<div class="tr8n_txtl" style="font-size:17px;padding-bottom:3px;font-weight:bold;">
+	  <%=tra("Translation for {language} Language", nil, :language => tr8n_current_language.native_name)%>
 	</div>
 	
-	<% form_for(:translation, @translation, :url => {:controller => "/tr8n/translations", :action => :translate}, :html => {:id => 'translation_form', :method => :post}) do |f| %>
+	<%= form_for(@translation, :as => :translation, :url => {:controller => "/tr8n/translations", :action => :submit}, :html => {:id => 'translation_form', :method => :post}) do |f| %>
+			<%= hidden_field_tag(:destination_url, "/tr8n/phrases/view?translation_key_id=#{@translation_key.id}") %>
 		  <%= hidden_field_tag(:translation_id, @translation.id) %>
 		  <%= hidden_field_tag(:new_translation, (@translation.id == nil).to_s ) %>
 		  <%= hidden_field_tag(:translation_key_id, @translation_key.id) %>
@@ -14,38 +15,36 @@
 		    <%= f.text_area(:label, :id => "tr8n_translation_label_#{@translation_key.id}", :style=>"width:99%;height:60px;border:1px solid #ccc;background-color:white;padding:3px;", :class => "keyboardInput" ) %>
 		  </div>
 			
-		  <% if @translation_key.translation_tokens? or tr8n_current_language.has_rules? %>
+		  <% if @translation_key.rules? %>
           <%= render(:partial => "tokens") %>
 			<% end %>		
 	
-			<% if Tr8n::Config.enable_google_suggestions? and tr8n_current_language.suggestible? %>  
-				<div id="tr8n_google_suggestion_container_<%=@translation_key.id%>" style="display:none; padding-bottom:10px;">
-				    <div class="section_title">
+			<% if Tr8n::Config.enable_google_suggestions? and tr8n_current_language.suggestible? and @translation_key.suggestions? %>  
+				<div id="tr8n_google_suggestion_container_<%=@translation_key.id%>" class="tr8n_txtl" style="display:none; padding-bottom:10px;">
+				    <div class="section_title tr8n_txtl">
 				        <%=trla("Suggested Translation")%>
 				    </div>
 				    
-				    <%=image_tag("/tr8n/images/left_quote.png", :style=>"text-align:bottom;padding-bottom:5px;") %>
+				    <%=image_tag("tr8n/left_quote.png", :style=>"text-align:bottom;padding-bottom:5px;") %>
 				    <a onclick="Tr8n.element('tr8n_translation_label_<%=@translation_key.id%>').value=Tr8n.element('tr8n_translation_suggestion_<%=@translation_key.id%>').innerHTML; return false;" href="#">
 				       <span id="tr8n_translation_suggestion_<%=@translation_key.id%>" style="font-size:12px;"></span>
 				    </a>
-				    <%=image_tag("/tr8n/images/right_quote.png", :style=>"text-align:bottom;padding-top:5px;") %>
+				    <%=image_tag("tr8n/right_quote.png", :style=>"text-align:bottom;padding-top:5px;") %>
 				    
             <% sanitized_label = @translation_key.tokenless_label.gsub('"', '\"') %>
-				    <script type="text/javascript">
-					    addEvent(window, "load", function(event) {
-                 suggestTranslation("<%=@translation_key.id %>", "<%=sanitized_label %>", "<%=@translation_key.suggestion_tokens.join(',')%>", "<%=@translation_key.language.google_key%>", "<%=tr8n_current_language.google_key%>");
-					    });
-				    </script>
+            <script type="text/javascript">
+            		Tr8n.Translation.suggest("<%=@translation_key.id %>", "<%=sanitized_label %>", "<%=@translation_key.suggestion_tokens.join(',')%>", "<%=@translation_key.language.google_key%>", "<%=tr8n_current_language.google_key%>");
+            </script>
 				  
-				    <div style="color:grey; font-size:12px; padding-top:10px;">
-				       <%=trla("Click on the suggested translation to insert it into the label")%>
+				    <div  class="tr8n_txtl" style="color:grey; font-size:12px; padding-top:10px;">
+				       <%=tra("Click on the suggested translation to insert it into the label")%>
 				    </div>
 				</div>
 			<% end %>
 			
 			<% if Tr8n::Config.enable_glossary_hints? and @translation_key.glossary? %>
-				<div id="tr8n_glossary_container" style="padding-top:5px; padding-bottom:10px;">
-				    <div class="section_title">
+				<div id="tr8n_glossary_container"  class="tr8n_txtl" style="padding-top:5px; padding-bottom:10px;">
+				    <div class="section_title tr8n_txtl">
 				      <%=trla("Glossary")%>
 				    </div>
 				    
@@ -62,28 +61,28 @@
 				    </div> 
 				    
 				    <div style="color:grey; font-size:12px; padding-top:10px;">
-				       <%=trla("Review the glossary definition to make sure it fits well with the meaning of your translation")%>
+				       <%=tra("Review the glossary definition to make sure it fits well with the meaning of your translation")%>
 				    </div>
 				</div>
 			<% end %>
 		
-      <% if Tr8n::Config.enable_dictionary_lookup? %>
-	      <div id="tr8n_dictionary_container" style="padding-top:5px; padding-bottom:10px;">
-						<div class="section_title">
-						  <%=trla("Dictionary Definitions for Original Phrase in English")%>
+      <% if Tr8n::Config.enable_dictionary_lookup? and @translation_key.dictionary? %>
+	      <div id="tr8n_dictionary_container"  class="tr8n_txtl" style="padding-top:5px; padding-bottom:10px;">
+						<div class="section_title tr8n_txtl">
+						  <%=tra("Dictionary Definitions for Original Phrase in English")%>
 						</div>
 	          
-						<div id="tr8n_dictionary_opener" style="font-size:12px; font-weight:normal;">
-							  <%=link_to_function(trla("Click here to download dictionary definitions for the phrase words"), "downloadDictionaryDefinitions(); ") %>
+						<div class="tr8n_txtl" id="tr8n_dictionary_opener" style="font-size:12px; font-weight:normal;">
+							<%=link_to_function(tra("Click here to download dictionary definitions for the phrase words"), "downloadDictionaryDefinitions(); ") %>
 						</div>	
 	
 	          <div id="tr8n_dictionary_shower" style="display:none; font-size:12px; font-weight:normal;">
-	              <%=link_to_function(trla("show dictionary definitions {raquo}"), "Tr8n.Effects.hide('tr8n_dictionary_shower'); Tr8n.Effects.show('tr8n_dictionary_hider'); Tr8n.Effects.appear('tr8n_dictionary'); Tr8n.Effects.scrollTo('buttons_container');") %>
+	            <%=link_to_function(trla("show dictionary definitions {raquo}"), "Tr8n.Effects.hide('tr8n_dictionary_shower'); Tr8n.Effects.show('tr8n_dictionary_hider'); Tr8n.Effects.appear('tr8n_dictionary'); Tr8n.Effects.scrollTo('buttons_container');") %>
 	          </div>  
 	
 	  			  <%=tr8n_spinner_tag("tr8n_dictionary_spinner", "Downloading words definitions...") %>
 						
-						<div id="tr8n_dictionary" style="height:300px; overflow:auto; display:none; background: #EFF8FF; border: 1px dotted #ccc; padding: 5px;">
+						<div id="tr8n_dictionary" class="section blue" style="height:300px; overflow:auto; display:none;">
 						</div>
 	
 	          <div id="tr8n_dictionary_hider" style="display:none; font-size:12px; font-weight:normal;">
@@ -94,9 +93,9 @@
 		
 		  <div id="buttons_container" style="padding-top:5px;padding-bottom:5px;text-align:center">
 		      <button type="submit" class="translator_btn translator_submit_btn" onClick="submitTranslation(); return false;">
-		          <span><%=trla("Translate")%></span>
+		          <span><%=tra("Translate")%></span>
 		      </button>
-		      <%=trla("or")%> <%= link_to_function(trla("Cancel"), "viewTranslations()") %>
+		      <%=tra("or")%> <%= link_to_function(tra("Cancel"), "viewTranslations()") %>
 		  </div>
 	
 	<% end %>

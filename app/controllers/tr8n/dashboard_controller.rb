@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8nhub.com
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -21,12 +21,14 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
-class Tr8n::DashboardController < Tr8n::BaseController
+module Tr8n
+  class DashboardController < Tr8n::BaseController
 
-  before_filter :validate_current_translator
+    before_filter :validate_current_translator
   
-  def index
-
-  end
+    def index
+      @user_languages = Tr8n::LanguageUser.languages_for(tr8n_current_user)
+    end
     
+  end
 end

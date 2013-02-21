@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8n.net
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -20,10 +20,36 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
+#
+#-- Tr8n::LanguageCaseValueMap Schema Information
+#
+# Table name: tr8n_language_case_value_maps
+#
+#  id               INTEGER         not null, primary key
+#  keyword          varchar(255)    not null
+#  language_id      integer         not null
+#  translator_id    integer         
+#  map              text            
+#  reported         boolean         
+#  created_at       datetime        
+#  updated_at       datetime        
+#
+# Indexes
+#
+#  index_tr8n_language_case_value_maps_on_translator_id              (translator_id) 
+#  index_tr8n_language_case_value_maps_on_keyword_and_language_id    (keyword, language_id) 
+#
+#++
 
 class Tr8n::LanguageCaseValueMap < ActiveRecord::Base
-  set_table_name :tr8n_language_case_value_maps
+  self.table_name = :tr8n_language_case_value_maps
 
+  attr_accessible :keyword, :language_id, :translator_id, :map, :reported
+  attr_accessible :language, :translator
+
+  after_save :clear_cache
+  after_destroy :clear_cache
+  
   belongs_to :language, :class_name => "Tr8n::Language"   
   belongs_to :translator, :class_name => "Tr8n::Translator"   
   
@@ -91,11 +117,7 @@ class Tr8n::LanguageCaseValueMap < ActiveRecord::Base
     self.translator.update_attributes(:reported => true) 
   end
 
-  def after_save
-    Tr8n::Cache.delete("language_case_value_map_#{language.id}_#{keyword}")
-  end
-
-  def after_destroy
+  def clear_cache
     Tr8n::Cache.delete("language_case_value_map_#{language.id}_#{keyword}")
   end
 

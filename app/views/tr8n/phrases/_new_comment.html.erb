@@ -1,5 +1,5 @@
-<div class="section_box colored">
-  <% form_tag({:action => :submit_comment}, {:method => :post, :id => "translation_key_comments_form"}) do %>
+<div class="section grey">
+  <%= form_tag({:action => :submit_comment}, {:method => :post, :id => "translation_key_comments_form"}) do %>
     <%= hidden_field_tag(:translation_key_id, @translation_key.id)%>
     <%= hidden_field_tag(:section_key, @section_key) %>
     
@@ -14,9 +14,9 @@
       </tr>
       <tr>
         <td></td>
-        <td style="color:grey; font-size:12px; padding-top:10px; padding-bottom:10px;">
+        <td class="tr8n_txtl" style="color:grey; font-size:12px; padding-top:10px; padding-bottom:10px;">
            <%=tra("Leave your comments here if you would like to discuss translations for this particular phrase.")%>
-           <%=tra("If you would like to discuss translations in general, leave your comments in the [link: language forum].", "", :link => ["/tr8n/forum"])%>
+           <%=tra("If you would like to discuss translations in general, leave your comments in the [link: language forum].", "", :link => lambda{|value| link_to(value, "/tr8n/forum")})%>
         </td>
       </tr>
     </table>

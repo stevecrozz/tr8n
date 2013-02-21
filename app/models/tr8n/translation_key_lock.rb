@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8n.net
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -20,9 +20,33 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
+#
+#-- Tr8n::TranslationKeyLock Schema Information
+#
+# Table name: tr8n_translation_key_locks
+#
+#  id                    INTEGER     not null, primary key
+#  translation_key_id    integer     not null
+#  language_id           integer     not null
+#  translator_id         integer     
+#  locked                boolean     
+#  created_at            datetime    
+#  updated_at            datetime    
+#
+# Indexes
+#
+#  tr8n_locks_key_id_lang_id    (translation_key_id, language_id) 
+#
+#++
 
 class Tr8n::TranslationKeyLock < ActiveRecord::Base
-  set_table_name :tr8n_translation_key_locks
+  self.table_name = :tr8n_translation_key_locks
+  
+  attr_accessible :translation_key_id, :language_id, :translator_id, :locked
+  attr_accessible :language, :translator, :translation_key
+
+  after_save      :clear_cache
+  after_destroy   :clear_cache
 
   belongs_to :translation_key,  :class_name => "Tr8n::TranslationKey"
   belongs_to :language,         :class_name => "Tr8n::Language"
@@ -31,7 +55,7 @@ class Tr8n::TranslationKeyLock < ActiveRecord::Base
   alias :key :translation_key
   
   def self.find_or_create(translation_key, language)
-    lock = find(:first, :conditions => ["translation_key_id = ? and language_id = ?", translation_key.id, language.id])
+    lock = where("translation_key_id = ? and language_id = ?", translation_key.id, language.id).first
     lock || create(:translation_key => translation_key, :language => language)
   end
 
@@ -44,6 +68,10 @@ class Tr8n::TranslationKeyLock < ActiveRecord::Base
   def lock!(translator = Tr8n::Config.current_translator)
     update_attributes(:locked => true, :translator => translator)
     translator.locked_translation_key!(translation_key, language)
+
+    if Tr8n::Config.language_stats_realtime?
+      language.total_metric.update_metrics!
+    end
   end
 
   def unlock!(translator = Tr8n::Config.current_translator)
@@ -51,7 +79,7 @@ class Tr8n::TranslationKeyLock < ActiveRecord::Base
     translator.unlocked_translation_key!(translation_key, language)
   end
   
-  def after_save
+  def clear_cache
     Tr8n::Cache.delete("translation_key_lock_#{language.locale}_#{translation_key.key}")
   end
 end

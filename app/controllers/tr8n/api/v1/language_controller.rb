@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8nhub.com
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -28,30 +28,27 @@ class Tr8n::Api::V1::LanguageController < Tr8n::Api::V1::BaseController
 
   # returns a list of all languages
   def index
-    return sanitize_api_response({"error" => "Api is disabled"}) unless Tr8n::Config.enable_api?
-
     languages = []
     Tr8n::Language.enabled_languages.each do |lang|
-      languages << {:locale => lang.locale, :name => lang.full_name}
+      languages << {:locale => lang.locale, 
+                    :name => lang.full_name, 
+                    :english_name => lang.english_name, 
+                    :native_name => lang.native_name, 
+                    :id => lang.id}
     end
     sanitize_api_response({:languages => languages})
   end
   
   def translate
-    return sanitize_api_response({"error" => "Api is disabled"}) unless Tr8n::Config.enable_api?
-
-#   return sanitize_api_response({"error" => "You must be logged in to use the api"}) if tr8n_current_user_is_guest?
-
     language = Tr8n::Language.for(params[:language]) || tr8n_current_language
-    source = CGI.unescape(params[:source]) || "API"
-    
-    return sanitize_api_response(translate_phrase(language, params, {:source => source})) if params[:label]
+    return sanitize_api_response(translate_phrase(language, params, {:source => source, :api => :translate})) if params[:label]
     
     # API signature
     # {:source => "", :language => "", :phrases => [{:label => ""}]}
     
-    # get all phrases for the specified source
-    if params[:batch] == "true"
+    # get all phrases for the specified source 
+    # this can be used by a parallel application or a JavaScript Client SDK that needs to build a page cache
+    if params[:batch] == "true" or params[:cache] == "true"
       if params[:sources].blank? and params[:source].blank?
         return sanitize_api_response({"error" => "No source/sources have been provided for the batch request."})
       end
@@ -69,7 +66,7 @@ class Tr8n::Api::V1::LanguageController < Tr8n::Api::V1::BaseController
       
       translations = []
       Tr8n::TranslationKey.find(:all, :conditions => conditions).each_with_index do |tkey, index|
-        trn = tkey.translate(language, {}, {:api => true})
+        trn = tkey.translate(language, {}, {:source => source, :url => source, :api => :cache})
         translations << trn 
       end
       
@@ -82,26 +79,27 @@ class Tr8n::Api::V1::LanguageController < Tr8n::Api::V1::BaseController
       rescue Exception => ex
         return sanitize_api_response({"error" => "Invalid request. JSON parsing failed: #{ex.message}"})
       end
-      
+
       translations = []
       phrases.each do |phrase|
         phrase = {:label => phrase} if phrase.is_a?(String)
-        translations << translate_phrase(language, phrase, {:source => source})
+        translations << translate_phrase(language, phrase, {:source => source, :url => source, :api => :translate})
       end
-      
+
       return sanitize_api_response({:phrases => translations})    
     end
     
-    sanitize_api_response({"error" => "Invalid API request. Please read the documentation and try again."})
+    sanitize_api_response(:phrases => {})
   rescue Tr8n::KeyRegistrationException => ex
     sanitize_api_response({"error" => ex.message})
   end
 
 private
-  
-  def translate_phrase(language, phrase, opts = {})
+
+  def translate_phrase(language, phrase, opts = {})    
     return "" if phrase[:label].strip.blank?
-    language.translate(phrase[:label], phrase[:description], {}, {:api => true, :source => opts[:source]})
+    translation_key = Tr8n::TranslationKey.find_or_create(phrase[:label], phrase[:description], opts)
+    translation_key.translate(language, {}, opts)
   end
   
 end

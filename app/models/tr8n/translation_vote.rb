@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8n.net
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -20,17 +20,37 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
+#
+#-- Tr8n::TranslationVote Schema Information
+#
+# Table name: tr8n_translation_votes
+#
+#  id                INTEGER     not null, primary key
+#  translation_id    integer     not null
+#  translator_id     integer     not null
+#  vote              integer     not null
+#  created_at        datetime    
+#  updated_at        datetime    
+#
+# Indexes
+#
+#  tr8n_trans_votes_trans_id_translator_id    (translation_id, translator_id) 
+#  tr8n_trans_votes_translator_id             (translator_id) 
+#
+#++
 
 class Tr8n::TranslationVote < ActiveRecord::Base
-  set_table_name :tr8n_translation_votes
+  self.table_name = :tr8n_translation_votes
   
-  belongs_to :translation,  :class_name => "Tr8n::Translation",  :dependent => :destroy
+  attr_accessible :translation_id, :translator_id, :vote
+  attr_accessible :translation, :translator
+
+  belongs_to :translation,  :class_name => "Tr8n::Translation"
   belongs_to :translator,   :class_name => "Tr8n::Translator"
     
   def self.find_or_create(translation, translator)
-    vote = find(:first, :conditions => ["translation_id = ? and translator_id = ?", translation.id, translator.id])
-    vote = create(:translation => translation, :translator => translator, :vote => 0) unless vote
-    vote
+    vote = where("translation_id = ? and translator_id = ?", translation.id, translator.id).first
+    vote ||= create(:translation => translation, :translator => translator, :vote => 0)
   end
   
 end

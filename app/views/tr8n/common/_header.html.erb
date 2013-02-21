@@ -1,5 +1,7 @@
-<%= render :partial => "/tr8n/common/tabs" %>
+<% if Tr8n::Config.enable_translator_tabs? and not tr8n_current_user_is_guest? %>
+	<%= render :partial => "/tr8n/common/tabs" %>
+<% end %>	
 
-<div class="tr8n">
+<div class="tr8n" <%=tr8n_dir_attribute_tag%> >
   
   

@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8n.net
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -20,9 +20,32 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
+#
+#-- Tr8n::TranslationKeySource Schema Information
+#
+# Table name: tr8n_translation_key_sources
+#
+#  id                       INTEGER     not null, primary key
+#  translation_key_id       integer     not null
+#  translation_source_id    integer     not null
+#  details                  text        
+#  created_at               datetime    
+#  updated_at               datetime    
+#
+# Indexes
+#
+#  tr8n_trans_keys_source_id    (translation_source_id) 
+#  tr8n_trans_keys_key_id       (translation_key_id) 
+#
+#++
 
 class Tr8n::TranslationKeySource < ActiveRecord::Base
-  set_table_name :tr8n_translation_key_sources
+  self.table_name =  :tr8n_translation_key_sources
+  
+  attr_accessible :translation_key_id, :translation_source_id, :details
+  attr_accessible :translation_source, :translation_key
+
+  after_destroy   :clear_cache
 
   belongs_to :translation_source, :class_name => "Tr8n::TranslationSource"
   belongs_to :translation_key,    :class_name => "Tr8n::TranslationKey"
@@ -32,10 +55,21 @@ class Tr8n::TranslationKeySource < ActiveRecord::Base
 
   serialize :details
 
+  def self.cache_key(translation_key_id, translation_source_id)
+    "translation_key_source_#{translation_key_id}_#{translation_source_id}"
+  end
+
+  def cache_key
+    self.class.cache_key(translation_key_id, translation_source_id)
+  end
+
   def self.find_or_create(translation_key, translation_source)
-    Tr8n::Cache.fetch("translation_key_source_#{translation_key.id}_#{translation_source.id}") do 
-      tks = find(:first, :conditions => ["translation_key_id = ? and translation_source_id = ?", translation_key.id, translation_source.id])
-      tks || create(:translation_key => translation_key, :translation_source => translation_source)
+    Tr8n::Cache.fetch(cache_key(translation_key.id, translation_source.id)) do 
+      tks = where("translation_key_id = ? and translation_source_id = ?", translation_key.id, translation_source.id).first
+      tks ||= begin
+        translation_source.touch
+        create(:translation_key => translation_key, :translation_source => translation_source)
+      end
     end  
   end
   
@@ -49,12 +83,8 @@ class Tr8n::TranslationKeySource < ActiveRecord::Base
     save
   end
   
-  def after_save
-    Tr8n::Cache.delete("translation_key_source_#{translation_key_id}_#{translation_source_id}")
-  end
-
-  def after_destroy
-    Tr8n::Cache.delete("translation_key_source_#{translation_key_id}_#{translation_source_id}")
+  def clear_cache
+    Tr8n::Cache.delete(cache_key)
   end
   
 end

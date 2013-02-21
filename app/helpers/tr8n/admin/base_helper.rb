@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8nhub.com
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -24,7 +24,7 @@
 module Tr8n::Admin::BaseHelper
 
   def tr8n_will_filter(results)
-    will_filter(results)
+    will_filter_tag(results)
   end
 
   def tr8n_will_paginate(collection = nil, options = {})

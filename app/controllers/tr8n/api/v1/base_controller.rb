@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8nhub.com
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -22,9 +22,27 @@
 #++
 
 class Tr8n::Api::V1::BaseController < ApplicationController
+  
+  before_filter :check_api_enabled
+
+  if Tr8n::Config.api_skip_before_filters.any?
+    skip_before_filter *Tr8n::Config.api_skip_before_filters
+  end
+
+  if Tr8n::Config.api_before_filters.any?
+    before_filter *Tr8n::Config.api_before_filters
+  end
+  
+  if Tr8n::Config.api_after_filters.any?
+    after_filter *Tr8n::Config.api_after_filters
+  end
 
 private
 
+  def check_api_enabled
+    sanitize_api_response({"error" => "Api is disabled"}) unless Tr8n::Config.enable_api?
+  end
+  
   def tr8n_current_user
     Tr8n::Config.current_user
   end
@@ -71,11 +89,27 @@ private
   end
   
   def sanitize_api_response(response)
+    if params[:callback]
+      return render(:text => "#{params[:callback]}(#{response.to_json});", :content_type => "text/javascript")
+    end 
+    
     if Tr8n::Config.api[:response_encoding] == "xml"
       render(:text => response.to_xml)
     else
       render(:text => response.to_json)
     end      
+  end
+
+  def source
+    @source ||= begin
+      if params[:source].blank?
+        uri = URI.parse(request.env['HTTP_REFERER'])
+        uri.query = nil
+        uri.to_s
+      else 
+        CGI.unescape(params[:source])
+      end
+    end
   end
 
 end

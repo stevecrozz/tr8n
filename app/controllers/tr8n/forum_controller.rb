@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8nhub.com
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -26,7 +26,7 @@ class Tr8n::ForumController < Tr8n::BaseController
   before_filter :validate_current_translator
   
   def index
-    @topics = Tr8n::LanguageForumTopic.paginate(:all, :conditions => ["language_id = ?", tr8n_current_language.id], :page => page, :per_page => per_page, :order => "created_at desc")
+    @topics = Tr8n::LanguageForumTopic.where(:language_id => tr8n_current_language.id).order("created_at desc").page(page).per(per_page)
   end
 
   def topic
@@ -48,7 +48,7 @@ class Tr8n::ForumController < Tr8n::BaseController
         params[:page] += 1 unless (@topic.post_count % per_page.to_i == 0) 
       end
 
-      @messages = Tr8n::LanguageForumMessage.paginate(:all, :conditions => ["language_forum_topic_id = ?", @topic.id], :page => page, :per_page => per_page, :order => "created_at asc")
+      @messages = Tr8n::LanguageForumMessage.where(:language_forum_topic_id => @topic.id).order("created_at asc").page(page).per(per_page)
     end
   end
 
@@ -82,19 +82,5 @@ class Tr8n::ForumController < Tr8n::BaseController
     trfn("The message has been removed")
     redirect_to(:action => :topic, :topic_id => message.language_forum_topic.id)
   end  
-
-  def report_message
-    message = Tr8n::LanguageForumMessage.find_by_id(params[:message_id])
-    
-    unless message
-      trfe("This message does not exist")
-      return redirect_to(:action => :index)
-    end  
-
-    message.submit_abuse_report(tr8n_current_translator)
-    
-    trfn("The message has been reported")
-    redirect_to(:action => :topic, :topic_id => message.language_forum_topic.id)    
-  end
 
 end

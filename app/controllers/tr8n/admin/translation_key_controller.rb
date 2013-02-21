@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8nhub.com
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -66,19 +66,22 @@ class Tr8n::Admin::TranslationKeyController < Tr8n::Admin::BaseController
   
   def lb_merge
     @keys = params[:keys] || ''
-    @keys = @keys.split(',')
-    @keys = Tr8n::TranslationKey.find(:all, :conditions => ["id in (?)", @keys])
+    @keys = @keys.split(',').select { |id| id =~ /^\d+$/ }
+    @keys = Tr8n::TranslationKey.find(:all, :conditions => ["id in (?)", @keys]) unless @keys.empty?
     @key = @keys.first
     
     render :layout => false
   end
 
   def merge
+    redirect_to_source unless (params[:translation_key] && params[:translation_key][:id])
     master_key = Tr8n::TranslationKey.find_by_id(params[:translation_key].delete(:id))
     
     keys = params[:keys] || ''
-    keys = keys.split(',')
-    keys = Tr8n::TranslationKey.find(:all, :conditions => ["id in (?)", keys])
+    keys = keys.split(',').select { |id| id =~ /^\d+$/ }
+    redirect_to_source if keys.empty?
+    
+    keys = Tr8n::TranslationKey.find(:all, :conditions => ["id in (?)", keys]) 
     keys.each do |key|
       next if key.id == master_key.id
       key.translations.each do |translation|
@@ -108,6 +111,10 @@ class Tr8n::Admin::TranslationKeyController < Tr8n::Admin::BaseController
   
   def comments
     @comments = Tr8n::TranslationKeyComment.filter(:params => params, :filter => Tr8n::TranslationKeyCommentFilter)
+  end
+  
+  def sync_logs
+    @logs = Tr8n::SyncLog.filter(:params => params, :filter => Tr8n::SyncLogFilter)
   end
   
   def delete_comment

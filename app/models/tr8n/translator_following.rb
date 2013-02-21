@@ -1,5 +1,5 @@
 #--
-# Copyright (c) 2010 Michael Berkovich, Geni Inc
+# Copyright (c) 2010-2012 Michael Berkovich, tr8n.net
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -20,10 +20,30 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
+#
+#-- Tr8n::TranslatorFollowing Schema Information
+#
+# Table name: tr8n_translator_following
+#
+#  id               INTEGER         not null, primary key
+#  translator_id    integer         
+#  object_id        integer         
+#  object_type      varchar(255)    
+#  created_at       datetime        
+#  updated_at       datetime        
+#
+# Indexes
+#
+#  index_tr8n_translator_following_on_translator_id    (translator_id) 
+#
+#++
 
 class Tr8n::TranslatorFollowing < ActiveRecord::Base
-  set_table_name :tr8n_translator_following
-  
+  self.table_name = :tr8n_translator_following
+
+  attr_accessible :translator_id, :object_id, :object_type
+  attr_accessible :translator, :object
+
   belongs_to :translator, :class_name => "Tr8n::Translator"   
   belongs_to :object, :polymorphic => true
 
@@ -32,7 +52,7 @@ class Tr8n::TranslatorFollowing < ActiveRecord::Base
   end
 
   def self.following_for(translator, object)
-    find(:first, :conditions => ["translator_id = ? and object_type = ? and object_id = ?", translator.id, object.class.name, object.id])
+    where("translator_id = ? and object_type = ? and object_id = ?", translator.id, object.class.name, object.id).first
   end
   
 end
